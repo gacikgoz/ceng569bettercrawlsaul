@@ -1,6 +1,7 @@
 import os
 import pickle
 import pyterrier as pt
+from pyterrier import Evaluate
 import ir_datasets
 import pandas as pd
 import numpy as np
@@ -173,19 +174,24 @@ for alpha in tqdm(alpha_values, desc="Alpha sweep"):
     df_alpha.to_csv(fname, index=False)
 
     # Evaluate for this alpha
-    metrics = pt.Utils.evaluate(
+    metrics = Evaluate(
         df_alpha,
         qrels_df,
-        metrics=["map", "ndcg@10", "P_10", "recall_10"]
+        metrics=[
+            "map",  # mean average precision
+            "ndcg_cut_10",  # NDCG@10
+            "P_10",  # precision@10
+            "recall_10"  # recall@10
+        ]
     )
     results.append({
         "BM25 Weight": round(alpha, 2),
         "FAISS Weight": round(1-alpha, 2),
-        "map": metrics["map"],
-        "ndcg@10": metrics["ndcg@10"],
-        "P_10": metrics["P_10"],
-        "recall_10": metrics["recall_10"],
-        "num_results": len(df_alpha)})
+        "MAP": metrics["map"],
+        "nDCG@10": metrics["ndcg_cut_10"],
+        "Precision@10": metrics["P_10"],
+        "Recall@10": metrics["recall_10"],
+        "Retrieved Count": len(df_alpha)})
 
 # 11) Save sweep summary metrics to CSV
 sweep_df = pd.DataFrame(results)
