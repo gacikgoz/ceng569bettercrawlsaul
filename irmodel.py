@@ -1,11 +1,7 @@
-import csv
-import json
 import os
 import pickle
 import re
-from collections import Counter
 
-import evaluate
 import faiss
 import ir_datasets
 import matplotlib.pyplot as plt
@@ -14,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pyterrier as pt
 import torch
-from datasets import Dataset
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from sentence_transformers import CrossEncoder, InputExample, SentenceTransformer
@@ -22,11 +17,7 @@ from sklearn.metrics import precision_recall_curve, auc
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
-    pipeline,
-    AutoTokenizer,
-    AutoModelForQuestionAnswering,
-    TrainingArguments,
-    Trainer
+    pipeline
 )
 
 # 0) Settings
@@ -103,7 +94,7 @@ def train_ce(negatives_per_query=3):
                       device=DEVICE)
 
     ce.fit(train_dataloader=loader,
-           epochs=5,
+           epochs=10,
            output_path=CE_PATH,
            warmup_steps=100,
            optimizer_params={"lr": 1e-5})
@@ -305,7 +296,6 @@ for a in alphas:
         plot_pr_curve(qrels_df, df_all,
                       title=f"PR Curve α={a:.1f}, β={b:.1f}",
                       save_path=f"pr_curve_a{a:.1f}_b{b:.1f}.png")
-
         # Global IR metrics
         m = pt.Utils.evaluate(df_all, qrels_df,
                               metrics=["map", "ndcg_cut_10", "P_10", "P_20", "recall_10", "recall_20"])
