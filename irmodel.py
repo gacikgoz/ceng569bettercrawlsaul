@@ -221,12 +221,35 @@ def retrieve_and_rerank(qid,query,top_k=100,alpha=0.5,rerank_k=20,beta=0.7):
     return top.nlargest(top_k,"score")[["qid","docno","score"]]
 
 # 8) QA extraction
-def answer_question(query,ranked,top_pass=5,top_ans=3):
-    c=[]
+def answer_question(query, ranked, top_pass=5, top_ans=3):
+    from nltk.tokenize import sent_tokenize
+    results = []
     for d in ranked.head(top_pass).docno:
-        out=qa_pipe(question=query,context=store.get(d).text)
-        c.append({"docno":d,"answer":out["answer"],"score":out["score"]})
-    return sorted(c,key=lambda x:x["score"],reverse=True)[:top_ans]
+        context = store.get(d).text
+        out = qa_pipe(question=query, context=context)
+
+        # Span konumu
+        ans_start, ans_end = out['start'], out['end']
+
+        # Cevabın geçtiği snippet'ı bul
+        sentences = sent_tokenize(context)
+        snippet = ""
+        for i, s in enumerate(sentences):
+            if ans_start >= context.find(s) and ans_end <= context.find(s) + len(s):
+                # Ortadaki cümle + komşu 1-2 cümleyi de al
+                start_i = max(0, i-1)
+                end_i = min(len(sentences), i+2)
+                snippet = " ".join(sentences[start_i:end_i])
+                break
+
+        results.append({
+            "docno": d,
+            "answer": out["answer"],
+            "score": out["score"],
+            "snippet": snippet
+        })
+
+    return sorted(results, key=lambda x: x["score"], reverse=True)[:top_ans]
 
 # 9) Sweep & evaluate
 alphas=np.arange(0.0,1.0,0.1)
