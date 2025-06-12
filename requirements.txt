@@ -1,4 +1,11 @@
 pandas~=2.2.3
 python-terrier
 numpy~=1.24.4
+faiss-cpu
+matplotlib
+nltk
+torch
+sentence-transformers
+scikit-learn
+transformers
 
