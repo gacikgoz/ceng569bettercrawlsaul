@@ -1,6 +1,7 @@
 # add venv files
 # Python virtual environment
 .venv/
+venv/
 # Python cache files
 __pycache__/
 # Jupyter Notebook checkpoints
