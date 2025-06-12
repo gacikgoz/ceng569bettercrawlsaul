@@ -33,6 +33,7 @@ MAX_LEN = 512
 
 # 1) Init
 pt.init()
+nltk.download('punkt_tab', quiet=True)
 nltk.download("stopwords", quiet=True)
 STOPWORDS = set(stopwords.words("english"))
 STEMMER = PorterStemmer()
@@ -282,24 +283,29 @@ alphas = np.arange(0.0, 1.1, 0.2)
 betas = np.arange(0.0, 1.1, 0.2)
 results = []
 
-for a in alphas:
-    for b in betas:
-        runs = []
-        for r in tqdm(queries_df.itertuples(), total=len(queries_df),
-                      desc=f"α={a:.1f}, β={b:.1f} Retrieval"):
-            runs.append(retrieve_and_rerank(r.qid, r.query, alpha=a, beta=b))
 
-        df_all = pd.concat(runs, ignore_index=True)
-        df_all.to_csv(f"res_a{a:.1f}_b{b:.1f}.csv", index=False)
+def experiments_alpha_beta():
+    for a in alphas:
+        for b in betas:
+            runs = []
+            for r in tqdm(queries_df.itertuples(), total=len(queries_df),
+                          desc=f"α={a:.1f}, β={b:.1f} Retrieval"):
+                runs.append(retrieve_and_rerank(r.qid, r.query, alpha=a, beta=b))
 
-        # PR Curve
-        plot_pr_curve(qrels_df, df_all,
-                      title=f"PR Curve α={a:.1f}, β={b:.1f}",
-                      save_path=f"pr_curve_a{a:.1f}_b{b:.1f}.png")
-        # Global IR metrics
-        m = pt.Utils.evaluate(df_all, qrels_df,
-                              metrics=["map", "ndcg_cut_10", "P_10", "P_20", "recall_10", "recall_20"])
-        results.append({"alpha": a, "beta": b, **m})
+            df_all = pd.concat(runs, ignore_index=True)
+            df_all.to_csv(f"res_a{a:.1f}_b{b:.1f}.csv", index=False)
+
+            # PR Curve
+            plot_pr_curve(qrels_df, df_all,
+                          title=f"PR Curve α={a:.1f}, β={b:.1f}",
+                          save_path=f"pr_curve_a{a:.1f}_b{b:.1f}.png")
+            # Global IR metrics
+            m = pt.Utils.evaluate(df_all, qrels_df,
+                                  metrics=["map", "ndcg_cut_10", "P_10", "P_20", "recall_10", "recall_20"])
+            results.append({"alpha": a, "beta": b, **m})
+
+
+#experiments_alpha_beta()
 
 # Save all results to one CSV
 pd.DataFrame(results).to_csv("alpha_beta_metrics.csv", index=False)

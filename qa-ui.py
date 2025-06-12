@@ -1,24 +1,50 @@
 import streamlit as st
-from irmodel import retrieve_and_rerank, answer_question
+from irmodel import retrieve_and_rerank, answer_question, store, preprocess_query
 
-st.set_page_config(page_title="IR + QA Demo", layout="wide")
-st.title("🔍 Information Retrieval + Question Answering")
+# Initialize Streamlit
+st.set_page_config(page_title="Financial Chat QA", layout="centered")
+st.title("📊 Financial Question Answering Chatbot")
 
-query = st.text_input("Enter your question:", "")
+# Model Info
+st.sidebar.title("🤖 Model Info")
+st.sidebar.write("System: Hybrid IR + Reranker + QA")
+st.sidebar.write("Retrieval: BM25 + Dense (FAISS)")
+st.sidebar.write("Reranker: Cross-Encoder (MiniLM)")
+st.sidebar.write("QA Model: deepset/roberta-base-squad2")
+if st.sidebar.button("🗑️ Clear Chat"):
+    st.session_state.clear()
 
-if query:
-    with st.spinner("Retrieving and answering..."):
-        # ad-hoc bir query_id veriyoruz
-        ranked = retrieve_and_rerank("q1", query)
-        answers = answer_question(query, ranked)
+# Chat State Init
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    st.subheader("📄 Top Answers")
-    for ans in answers:
-        st.markdown(f"**Answer:** {ans['answer']}")
-        st.markdown(f"_Score:_ {ans['score']:.3f}")
-        st.markdown(f"> {ans['snippet']}")
-        st.markdown("---")
+# Show Message History
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-    st.success("Done!")
-else:   
-    st.info("Please enter a question to get started.")
+# User Input
+if query := st.chat_input("Ask a financial question..."):
+    st.session_state.messages.append({"role": "user", "content": query})
+    with st.chat_message("user"):
+        st.markdown(query)
+
+    # IR + Rerank
+    try:
+        qid = f"q_{len(st.session_state.messages)}"
+        reranked = retrieve_and_rerank(qid, query)
+        answers = answer_question(query, reranked)
+
+        if not answers:
+            answer_text = "❌ Sorry, I couldn’t find a good answer in the documents."
+        else:
+            answer_text = f"✅ **Answer:** {answers[0]['answer']}\n\n"
+            answer_text += f"📌 *Snippet:* “{answers[0]['snippet']}”"
+
+    except Exception as e:
+        answer_text = f"⚠️ An error occurred: {e}"
+
+    st.session_state.messages.append({"role": "assistant", "content": answer_text})
+    with st.chat_message("assistant"):
+        st.markdown(answer_text)
+
