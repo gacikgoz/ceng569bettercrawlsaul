@@ -1,0 +1,4 @@
+accuracy,precision,recall,f1
+0.9297253634894992,1.0,0.9297253634894992,0.9635830891586438
+
+[CE Train] 30666 total examples (14166 pos + ~16500 neg)
